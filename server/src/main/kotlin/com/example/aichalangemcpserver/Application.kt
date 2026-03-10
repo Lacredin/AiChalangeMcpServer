@@ -2,6 +2,7 @@ package com.example.aichalangemcpserver
 
 import com.example.aichalangemcpserver.application.ToolRegistryService
 import com.example.aichalangemcpserver.infrastructure.tool.ExampleEchoTool
+import com.example.aichalangemcpserver.infrastructure.tool.GitHubApiTool
 import com.example.aichalangemcpserver.presentation.Routes
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -19,7 +20,8 @@ fun main() {
 fun Application.module() {
     val toolRegistry = ToolRegistryService(
         tools = listOf(
-            ExampleEchoTool()
+            ExampleEchoTool(),
+            GitHubApiTool()
         )
     )
 
