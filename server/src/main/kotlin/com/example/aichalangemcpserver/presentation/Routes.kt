@@ -46,6 +46,12 @@ class Routes(
 
         route.post("/mcp") {
             val request = call.receive<JsonRpcRequestDto>()
+
+            if (request.id == null && request.method.startsWith("notifications/")) {
+                call.respond(HttpStatusCode.NoContent)
+                return@post
+            }
+
             val response = handleRpc(request)
             val status = if (response.error == null) HttpStatusCode.OK else HttpStatusCode.BadRequest
             call.respond(status, response)
