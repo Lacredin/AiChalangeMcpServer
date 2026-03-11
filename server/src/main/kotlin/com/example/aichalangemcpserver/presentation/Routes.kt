@@ -2,6 +2,7 @@ package com.example.aichalangemcpserver.presentation
 
 import com.example.aichalangemcpserver.Greeting
 import com.example.aichalangemcpserver.application.ToolRegistryService
+import com.example.aichalangemcpserver.infrastructure.ws.TimerWebSocketHub
 import com.example.aichalangemcpserver.presentation.dto.JsonRpcErrorDto
 import com.example.aichalangemcpserver.presentation.dto.JsonRpcRequestDto
 import com.example.aichalangemcpserver.presentation.dto.JsonRpcResponseDto
@@ -10,6 +11,10 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.websocket.*
+import io.ktor.websocket.Frame
+import io.ktor.websocket.readText
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
@@ -20,7 +25,8 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 
 class Routes(
-    private val toolRegistryService: ToolRegistryService
+    private val toolRegistryService: ToolRegistryService,
+    private val timerWebSocketHub: TimerWebSocketHub
 ) {
     fun register(route: Routing) {
         route.get("/") {
@@ -42,6 +48,25 @@ class Routes(
 
         route.get("/health") {
             call.respondText("OK: ${Greeting().greet()}")
+        }
+
+        route.webSocket("/ws") {
+            val clientId = call.request.queryParameters["clientId"]?.trim().orEmpty()
+            if (clientId.isBlank()) {
+                send(Frame.Text("""{"event":"error","message":"Требуется query-параметр clientId"}"""))
+                return@webSocket
+            }
+
+            timerWebSocketHub.register(clientId, this)
+            try {
+                incoming.consumeEach { frame ->
+                    if (frame is Frame.Text && frame.readText().equals("ping", ignoreCase = true)) {
+                        send(Frame.Text("""{"event":"pong"}"""))
+                    }
+                }
+            } finally {
+                timerWebSocketHub.unregister(clientId, this)
+            }
         }
 
         route.post("/mcp") {

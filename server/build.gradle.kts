@@ -20,6 +20,7 @@ dependencies {
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
     implementation(libs.ktor.serverContentNegotiation)
+    implementation(libs.ktor.serverWebSockets)
     implementation(libs.ktor.serializationKotlinxJson)
     implementation(libs.ktor.clientCore)
     implementation(libs.ktor.clientJava)

@@ -35,7 +35,7 @@ class GitHubApiTool : McpTool {
 
     override val definition: ToolDefinition = ToolDefinition(
         name = "github.api",
-        description = "Запросы к GitHub API (репозиторий, список репозиториев пользователя, профиль пользователя и текущий авторизованный пользователь).",
+        description = "Запросы к GitHub API. Поддерживает репозитории и профили, включая запросы к авторизованному пользователю.",
         inputSchema = buildJsonObject {
             put("type", "object")
             putJsonObject("properties") {
@@ -45,6 +45,7 @@ class GitHubApiTool : McpTool {
                     putJsonArray("enum") {
                         add(JsonPrimitive("get_repo"))
                         add(JsonPrimitive("list_user_repos"))
+                        add(JsonPrimitive("list_authenticated_repos"))
                         add(JsonPrimitive("get_user"))
                         add(JsonPrimitive("get_authenticated_user"))
                     }
@@ -63,7 +64,7 @@ class GitHubApiTool : McpTool {
                 }
                 putJsonObject("perPage") {
                     put("type", "integer")
-                    put("description", "Количество записей на страницу (для list_user_repos, 1..100).")
+                    put("description", "Количество записей на страницу (для list_user_repos и list_authenticated_repos, 1..100).")
                 }
             }
             putJsonArray("required") {
@@ -75,7 +76,13 @@ class GitHubApiTool : McpTool {
 
     override suspend fun execute(arguments: JsonObject): ToolExecutionResult {
         val operation = arguments["operation"]?.jsonPrimitive?.contentOrNull
-            ?: return ToolExecutionResult("Отсутствует обязательный аргумент: operation", isError = true)
+            ?: inferOperation(arguments)
+            ?: return ToolExecutionResult(
+                text = "Отсутствует обязательный аргумент: operation. Пример: {\"operation\":\"list_authenticated_repos\",\"perPage\":30}",
+                isError = true
+            )
+
+        val perPage = (arguments["perPage"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 30).coerceIn(1, 100)
 
         val url = when (operation) {
             "get_repo" -> {
@@ -92,8 +99,17 @@ class GitHubApiTool : McpTool {
                 if (username.isNullOrBlank()) {
                     return ToolExecutionResult("Для list_user_repos обязателен username", isError = true)
                 }
-                val perPage = (arguments["perPage"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 30).coerceIn(1, 100)
                 "https://api.github.com/users/$username/repos?per_page=$perPage"
+            }
+
+            "list_authenticated_repos" -> {
+                if (token.isNullOrBlank()) {
+                    return ToolExecutionResult(
+                        "Для list_authenticated_repos требуется токен GITHUB_PERSONAL_ACCESS_TOKEN",
+                        isError = true
+                    )
+                }
+                "https://api.github.com/user/repos?per_page=$perPage"
             }
 
             "get_user" -> {
@@ -115,7 +131,7 @@ class GitHubApiTool : McpTool {
             }
 
             else -> return ToolExecutionResult(
-                text = "Неизвестная операция: $operation. Доступно: get_repo, list_user_repos, get_user, get_authenticated_user",
+                text = "Неизвестная операция: $operation. Доступно: get_repo, list_user_repos, list_authenticated_repos, get_user, get_authenticated_user",
                 isError = true
             )
         }
@@ -135,6 +151,24 @@ class GitHubApiTool : McpTool {
         }.getOrElse { error ->
             ToolExecutionResult(text = "Ошибка запроса к GitHub API: ${error.message}", isError = true)
         }
+    }
+
+    private fun inferOperation(arguments: JsonObject): String? {
+        val hint = buildString {
+            append(arguments["task_context"]?.jsonPrimitive?.contentOrNull.orEmpty())
+            append(' ')
+            append(arguments["step_description"]?.jsonPrimitive?.contentOrNull.orEmpty())
+        }.lowercase()
+
+        if (
+            hint.contains("репозитор") ||
+            hint.contains("my repos") ||
+            hint.contains("repositories") ||
+            hint.contains("github")
+        ) {
+            return "list_authenticated_repos"
+        }
+        return null
     }
 
     private fun resolveToken(): String? {
