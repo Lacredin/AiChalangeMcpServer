@@ -2,6 +2,7 @@ package com.example.aichalangemcpserver.presentation
 
 import com.example.aichalangemcpserver.Greeting
 import com.example.aichalangemcpserver.application.ToolRegistryService
+import com.example.aichalangemcpserver.infrastructure.db.NoteRepository
 import com.example.aichalangemcpserver.infrastructure.ws.TimerWebSocketHub
 import com.example.aichalangemcpserver.presentation.dto.JsonRpcErrorDto
 import com.example.aichalangemcpserver.presentation.dto.JsonRpcRequestDto
@@ -26,7 +27,8 @@ import kotlinx.serialization.json.putJsonObject
 
 class Routes(
     private val toolRegistryService: ToolRegistryService,
-    private val timerWebSocketHub: TimerWebSocketHub
+    private val timerWebSocketHub: TimerWebSocketHub,
+    private val noteRepository: NoteRepository
 ) {
     fun register(route: Routing) {
         route.get("/") {
@@ -48,6 +50,16 @@ class Routes(
 
         route.get("/health") {
             call.respondText("OK: ${Greeting().greet()}")
+        }
+
+        route.post("/api/notes/clear") {
+            val deleted = noteRepository.clearAll()
+            call.respond(
+                buildJsonObject {
+                    put("deleted", deleted)
+                    put("message", "База заметок очищена")
+                }
+            )
         }
 
         route.webSocket("/ws") {

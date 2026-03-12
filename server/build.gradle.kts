@@ -25,7 +25,9 @@ dependencies {
     implementation(libs.ktor.clientCore)
     implementation(libs.ktor.clientJava)
     implementation(libs.ktor.clientContentNegotiation)
+    implementation(libs.sqlite.jdbc)
     implementation(libs.kotlinx.serialization.json)
+    testImplementation(libs.ktor.clientMock)
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
 }

@@ -7,6 +7,7 @@ kotlinxSerialization = "1.9.0"
 ktor = "3.3.3"
 logback = "1.5.24"
 material3 = "1.10.0-alpha05"
+sqlite = "3.46.0.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -30,7 +31,9 @@ ktor-serializationKotlinxJson = { module = "io.ktor:ktor-serialization-kotlinx-j
 ktor-clientCore = { module = "io.ktor:ktor-client-core-jvm", version.ref = "ktor" }
 ktor-clientJava = { module = "io.ktor:ktor-client-java-jvm", version.ref = "ktor" }
 ktor-clientContentNegotiation = { module = "io.ktor:ktor-client-content-negotiation-jvm", version.ref = "ktor" }
+ktor-clientMock = { module = "io.ktor:ktor-client-mock-jvm", version.ref = "ktor" }
 ktor-serverTestHost = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor" }
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
 
 [plugins]
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
